@@ -17,7 +17,9 @@ self.onmessage = async function (e) {
     try {
         if (!Module) {
             importScripts("wasm/odzip.js");
-            Module = await createOdzipModule();
+            Module = await createOdzipModule({
+                locateFile: (path) => "wasm/" + path,
+            });
         }
 
         const input = new Uint8Array(buffer);

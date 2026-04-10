@@ -24,7 +24,7 @@ emcc -O2 -std=c17 -D_POSIX_C_SOURCE=200809L \
         '_malloc', \
         '_free' \
     ]" \
-    -sEXPORTED_RUNTIME_METHODS="['getValue','UTF8ToString']" \
+    -sEXPORTED_RUNTIME_METHODS="['getValue','HEAPU8','UTF8ToString']" \
     -I"$ODZIP_SRC" \
     "$ODZIP_SRC/odz_util.c" \
     "$ODZIP_SRC/bitstream.c" \
