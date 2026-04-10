@@ -65,6 +65,11 @@
     }
 
     function showDone(result) {
+        /* Revoke any previous blob URL */
+        if (downloadLink.href && downloadLink.href.startsWith("blob:")) {
+            URL.revokeObjectURL(downloadLink.href);
+        }
+
         dropZone.hidden = true;
         processing.hidden = true;
         done.hidden = false;
@@ -80,7 +85,7 @@
             var pct = Math.round((1 - result.resultSize / result.originalSize) * 100);
             doneRatio.textContent = pct + "% smaller";
             doneRatio.hidden = false;
-        } else if (op === "decompress") {
+        } else {
             doneRatio.hidden = true;
         }
 

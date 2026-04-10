@@ -52,7 +52,9 @@ uint8_t* odz_web_compress(const uint8_t *input, uint32_t input_len,
 
     uint8_t *buf = (uint8_t *)malloc((size_t)size);
     if (!buf) { fclose(res); remove("/tmp/out"); return NULL; }
-    fread(buf, 1, (size_t)size, res);
+    if (fread(buf, 1, (size_t)size, res) != (size_t)size) {
+        free(buf); fclose(res); remove("/tmp/out"); return NULL;
+    }
     fclose(res);
     remove("/tmp/out");
 
@@ -94,7 +96,9 @@ uint8_t* odz_web_decompress(const uint8_t *input, uint32_t input_len,
 
     uint8_t *buf = (uint8_t *)malloc((size_t)size);
     if (!buf) { fclose(res); remove("/tmp/out"); return NULL; }
-    fread(buf, 1, (size_t)size, res);
+    if (fread(buf, 1, (size_t)size, res) != (size_t)size) {
+        free(buf); fclose(res); remove("/tmp/out"); return NULL;
+    }
     fclose(res);
     remove("/tmp/out");
 
