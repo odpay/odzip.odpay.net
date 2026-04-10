@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>odzip</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="wordmark">odzip</span>
+        </header>
+
+        <main>
+            <div id="drop-zone" class="drop-zone">
+                <p class="drop-text">Drop a file to compress or decompress</p>
+                <input type="file" id="file-input" hidden>
+            </div>
+
+            <div id="processing" class="processing" hidden>
+                <p id="processing-label" class="processing-label">Compressing...</p>
+                <p id="processing-filename" class="processing-filename"></p>
+                <div class="progress-track">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <p id="progress-text" class="progress-text">0%</p>
+            </div>
+
+            <div id="done" class="done" hidden>
+                <p id="done-filename" class="done-filename"></p>
+                <p id="done-sizes" class="done-sizes"></p>
+                <p id="done-ratio" class="done-ratio"></p>
+                <p id="done-time" class="done-time"></p>
+                <a id="download-link" class="download-link" href="#">Download</a>
+                <button id="reset-btn" class="reset-link">Drop another file</button>
+            </div>
+        </main>
+
+        <footer>
+            <a href="https://github.com/odpay/odzip" target="_blank" rel="noopener">github</a>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
