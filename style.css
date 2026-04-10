@@ -1,0 +1,183 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    background: #1a1a2e;
+    color: #c8c8d0;
+    font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 440px;
+    padding: 0 24px;
+    text-align: center;
+}
+
+/* Header */
+header {
+    margin-bottom: 48px;
+}
+
+.wordmark {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #888;
+}
+
+/* Drop zone — idle state */
+.drop-zone {
+    border: 2px dashed #2a2a3e;
+    border-radius: 6px;
+    padding: 64px 24px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: #7a7aad;
+}
+
+.drop-text {
+    color: #555;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+/* Processing state */
+.processing {
+    padding: 48px 0;
+}
+
+.processing-label {
+    color: #555;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.processing-filename {
+    color: #c8c8d0;
+    font-size: 14px;
+    margin-bottom: 24px;
+    word-break: break-all;
+}
+
+.progress-track {
+    height: 3px;
+    background: #2a2a3e;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #7a7aad;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.15s ease;
+}
+
+.progress-text {
+    color: #555;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+/* Done state */
+.done {
+    padding: 32px 0;
+}
+
+.done-filename {
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 16px;
+    word-break: break-all;
+}
+
+.done-sizes {
+    color: #c8c8d0;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+
+.done-ratio {
+    color: #7a7aad;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.done-time {
+    color: #555;
+    font-size: 12px;
+    margin-bottom: 28px;
+}
+
+.download-link {
+    display: inline-block;
+    color: #7a7aad;
+    font-size: 14px;
+    text-decoration: none;
+    padding-bottom: 1px;
+    border-bottom: 1px solid rgba(122, 122, 173, 0.4);
+    transition: border-color 0.15s;
+}
+
+.download-link:hover {
+    border-color: #7a7aad;
+}
+
+.reset-link {
+    display: block;
+    margin: 16px auto 0;
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s;
+}
+
+.reset-link:hover {
+    color: #888;
+}
+
+/* Footer */
+footer {
+    margin-top: 48px;
+}
+
+footer a {
+    color: #333;
+    font-size: 11px;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+footer a:hover {
+    color: #555;
+}
+
+/* Error state (shown inline in processing area) */
+.error-message {
+    color: #ad7a7a;
+    font-size: 13px;
+    margin-top: 16px;
+}
