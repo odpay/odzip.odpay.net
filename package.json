@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "serve . -l 3000",
+    "test": "npx playwright test",
+    "build:wasm": "./build-wasm.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "serve": "^14.2.0"
+  }
+}
