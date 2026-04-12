@@ -1,26 +1,33 @@
-/* Orchestrator worker: splits files into 1MB blocks and distributes
- * across parallel block workers for compression/decompression.
- * Falls back to single-threaded for files with 1 block or fewer.
+/* Orchestrator worker: splits files into blocks and distributes across
+ * parallel block workers. Falls back to single-threaded for small files.
+ *
+ * All .odz format knowledge lives in the C wrapper (odzip_web.c).
+ * This file only calls C helper functions via WASM, never parses .odz directly.
  *
  * Messages in:  { type: "compress"|"decompress", buffer: ArrayBuffer, filename: string }
  * Messages out: { type: "progress", percent: number }
  *               { type: "done", buffer: ArrayBuffer, originalSize, resultSize, timeMs }
  *               { type: "error", message: string } */
 
-var BLOCK_SIZE = 1 << 20; // 1MB, matches ODZ_BLOCK_SIZE in odz.h
 var NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 8);
 
 var blockWorkers = null;
 var Module = null;
+var BLOCK_SIZE = 0;
+var HEADER_SIZE = 0;
 
-/* ---- Single-threaded path (small files) ---- */
+/* ---- WASM module (used for single-threaded path + format helpers) ---- */
 
 async function ensureModule() {
     if (!Module) {
         importScripts("wasm/odzip.js");
         Module = await createOdzipModule({ locateFile: function (path) { return "wasm/" + path; } });
+        BLOCK_SIZE = Module._odz_web_block_size();
+        HEADER_SIZE = Module._odz_web_header_size();
     }
 }
+
+/* ---- Single-threaded path ---- */
 
 function compressSingle(input) {
     var inputPtr = Module._malloc(input.length);
@@ -52,7 +59,7 @@ function decompressSingle(input) {
     return result;
 }
 
-/* ---- Parallel path (large files) ---- */
+/* ---- Parallel path ---- */
 
 function initBlockWorkers() {
     if (blockWorkers) return;
@@ -63,8 +70,6 @@ function initBlockWorkers() {
 }
 
 function runBlockJobs(jobs) {
-    /* jobs: [{ type, data, index, rawSize? }]
-     * Returns promise resolving to array of ArrayBuffers indexed by job index */
     return new Promise(function (resolve, reject) {
         var results = new Array(jobs.length);
         var completed = 0;
@@ -87,7 +92,7 @@ function runBlockJobs(jobs) {
                 }
             };
 
-            var buf = job.data.buffer ? job.data.buffer.slice(0) : job.data.slice(0);
+            var buf = job.data instanceof ArrayBuffer ? job.data.slice(0) : job.data.buffer.slice(0);
             var msg = { type: job.type, data: buf, index: job.index };
             if (job.rawSize !== undefined) msg.rawSize = job.rawSize;
             w.postMessage(msg, [buf]);
@@ -99,21 +104,10 @@ function runBlockJobs(jobs) {
     });
 }
 
-function writeU32LE(arr, offset, val) {
-    arr[offset]     = val & 0xFF;
-    arr[offset + 1] = (val >>> 8) & 0xFF;
-    arr[offset + 2] = (val >>> 16) & 0xFF;
-    arr[offset + 3] = (val >>> 24) & 0xFF;
-}
-
-function readU32LE(arr, offset) {
-    return (arr[offset] | (arr[offset+1] << 8) | (arr[offset+2] << 16) | (arr[offset+3] << 24)) >>> 0;
-}
-
 async function compressParallel(input) {
     initBlockWorkers();
 
-    /* Split into 1MB chunks */
+    /* Split into blocks (size from C) */
     var jobs = [];
     for (var offset = 0; offset < input.length; offset += BLOCK_SIZE) {
         var end = Math.min(offset + BLOCK_SIZE, input.length);
@@ -126,77 +120,72 @@ async function compressParallel(input) {
 
     var blocks = await runBlockJobs(jobs);
 
-    /* Assemble .odz file: 12-byte header + blocks */
+    /* Assemble .odz file using C helpers for header + flag manipulation */
     var totalBlockBytes = 0;
     for (var i = 0; i < blocks.length; i++) totalBlockBytes += blocks[i].length;
 
-    var output = new Uint8Array(12 + totalBlockBytes);
-    output[0] = 79; output[1] = 68; output[2] = 90; // "ODZ"
-    output[3] = 2; // version
-    writeU32LE(output, 4, input.length); // original size low 32 bits
-    writeU32LE(output, 8, Math.floor(input.length / 0x100000000)); // high 32 bits
+    var output = new Uint8Array(HEADER_SIZE + totalBlockBytes);
 
-    var pos = 12;
+    /* Write file header via C */
+    var hdrPtr = Module._malloc(HEADER_SIZE);
+    var sizeLo = input.length >>> 0;
+    var sizeHi = Math.floor(input.length / 0x100000000) >>> 0;
+    Module._odz_web_write_header(hdrPtr, sizeLo, sizeHi);
+    output.set(Module.HEAPU8.subarray(hdrPtr, hdrPtr + HEADER_SIZE), 0);
+    Module._free(hdrPtr);
+
+    /* Concatenate blocks, fix is_last flags via C */
+    var pos = HEADER_SIZE;
     for (var i = 0; i < blocks.length; i++) {
         output.set(blocks[i], pos);
-        /* Fix is_last flag: each block worker sets is_last=1 (single block file).
-         * Clear it on all blocks except the actual last one. */
-        if (i < blocks.length - 1) {
-            output[pos] = output[pos] & 0xFE;
-        } else {
-            output[pos] = output[pos] | 0x01;
-        }
+
+        /* Use C helper to set/clear is_last on the flags byte in the output buffer.
+         * We write the block into WASM memory temporarily for the flag fix. */
+        var flagPtr = Module._malloc(1);
+        Module.HEAPU8[flagPtr] = output[pos];
+        Module._odz_web_set_last(flagPtr, i === blocks.length - 1 ? 1 : 0);
+        output[pos] = Module.HEAPU8[flagPtr];
+        Module._free(flagPtr);
+
         pos += blocks[i].length;
     }
 
     return output;
 }
 
-/* Parse .odz block boundaries for parallel decompression */
-function parseBlockBoundaries(data) {
-    var blocks = [];
-    var pos = 12; // skip file header
-    while (pos < data.length) {
-        var flags = data[pos];
-        var isLast = flags & 1;
-        var blockType = (flags >> 1) & 3;
-        var startPos = pos;
-
-        pos++; // flags
-        var rawSize = readU32LE(data, pos);
-        pos += 4;
-
-        var blockLen;
-        if (blockType === 0) { // STORED
-            blockLen = 5 + rawSize;
-            pos += rawSize;
-        } else { // HUFFMAN
-            var compSize = readU32LE(data, pos);
-            pos += 4;
-            blockLen = 9 + compSize;
-            pos += compSize;
-        }
-
-        blocks.push({ offset: startPos, length: blockLen, rawSize: rawSize });
-        if (isLast) break;
-    }
-    return blocks;
-}
-
 async function decompressParallel(input) {
     initBlockWorkers();
 
-    var blockInfo = parseBlockBoundaries(input);
+    /* Parse block boundaries via C helper */
+    var dataPtr = Module._malloc(input.length);
+    Module.HEAPU8.set(input, dataPtr);
+    var numBlocksPtr = Module._malloc(4);
+
+    var infoPtr = Module._odz_web_parse_blocks(dataPtr, input.length, numBlocksPtr);
+    Module._free(dataPtr);
+
+    if (infoPtr === 0) {
+        Module._free(numBlocksPtr);
+        throw new Error("failed to parse block boundaries");
+    }
+
+    var numBlocks = Module.getValue(numBlocksPtr, "i32");
+    Module._free(numBlocksPtr);
+
+    /* Read the packed [offset, length, rawSize] triples */
     var jobs = [];
-    for (var i = 0; i < blockInfo.length; i++) {
-        var b = blockInfo[i];
+    for (var i = 0; i < numBlocks; i++) {
+        var offset = Module.HEAPU32[(infoPtr >> 2) + i * 3];
+        var length = Module.HEAPU32[(infoPtr >> 2) + i * 3 + 1];
+        var rawSize = Module.HEAPU32[(infoPtr >> 2) + i * 3 + 2];
         jobs.push({
             type: "decompress-block",
-            data: input.slice(b.offset, b.offset + b.length),
+            data: input.slice(offset, offset + length),
             index: i,
-            rawSize: b.rawSize,
+            rawSize: rawSize,
         });
     }
+    Module._odz_web_free(infoPtr);
 
     var blocks = await runBlockJobs(jobs);
 
@@ -221,12 +210,12 @@ self.onmessage = async function (e) {
     var start = performance.now();
 
     try {
+        await ensureModule();
         var result;
         var numBlocks = Math.ceil(input.length / BLOCK_SIZE);
 
         if (type === "compress") {
             if (numBlocks <= 1) {
-                await ensureModule();
                 self.postMessage({ type: "progress", percent: 0 });
                 result = compressSingle(input);
                 if (!result) throw new Error("compress failed");
@@ -235,10 +224,17 @@ self.onmessage = async function (e) {
                 result = await compressParallel(input);
             }
         } else {
-            /* For decompression, check block count from the .odz file */
-            var blockInfo = parseBlockBoundaries(input);
-            if (blockInfo.length <= 1) {
-                await ensureModule();
+            /* For decompression, parse block count via C helper */
+            var dataPtr = Module._malloc(input.length);
+            Module.HEAPU8.set(input, dataPtr);
+            var nbPtr = Module._malloc(4);
+            var infoPtr = Module._odz_web_parse_blocks(dataPtr, input.length, nbPtr);
+            Module._free(dataPtr);
+            var nb = infoPtr ? Module.getValue(nbPtr, "i32") : 1;
+            Module._free(nbPtr);
+            if (infoPtr) Module._odz_web_free(infoPtr);
+
+            if (nb <= 1) {
                 self.postMessage({ type: "progress", percent: 0 });
                 result = decompressSingle(input);
                 if (!result) throw new Error("decompress failed");

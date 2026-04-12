@@ -21,10 +21,18 @@ emcc -O3 -std=c17 -D_POSIX_C_SOURCE=200809L \
         '_odz_web_decompress', \
         '_odz_web_strerror', \
         '_odz_web_free', \
+        '_odz_web_block_size', \
+        '_odz_web_header_size', \
+        '_odz_web_write_header', \
+        '_odz_web_read_header_size', \
+        '_odz_web_strip_header', \
+        '_odz_web_set_last', \
+        '_odz_web_wrap_block', \
+        '_odz_web_parse_blocks', \
         '_malloc', \
         '_free' \
     ]" \
-    -sEXPORTED_RUNTIME_METHODS="['getValue','HEAPU8','UTF8ToString']" \
+    -sEXPORTED_RUNTIME_METHODS="['getValue','HEAPU8','HEAPU32','UTF8ToString']" \
     -I"$ODZIP_SRC" \
     "$ODZIP_SRC/odz_util.c" \
     "$ODZIP_SRC/bitstream.c" \
