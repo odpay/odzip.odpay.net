@@ -4,7 +4,7 @@ export default defineConfig({
     testDir: "./tests",
     timeout: 60000,
     webServer: {
-        command: "npx serve . -l 3000",
+        command: "node server.js 3000",
         port: 3000,
         reuseExistingServer: true,
     },

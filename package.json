@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "serve": "serve . -l 3000",
+    "serve": "node server.js 3000",
     "test": "npx playwright test",
     "build:wasm": "./build-wasm.sh"
   },

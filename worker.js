@@ -20,6 +20,8 @@ self.onmessage = async function (e) {
             Module = await createOdzipModule({
                 locateFile: (path) => "wasm/" + path,
             });
+            /* single-threaded: Emscripten pthreads don't work
+               from nested Web Workers (our worker.js is already a worker) */
         }
 
         const input = new Uint8Array(buffer);

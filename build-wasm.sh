@@ -11,7 +11,7 @@ fi
 
 echo "Building odzip WASM from $ODZIP_SRC..."
 
-emcc -O2 -std=c17 -D_POSIX_C_SOURCE=200809L \
+emcc -O3 -std=c17 -D_POSIX_C_SOURCE=200809L \
     -sWASM=1 \
     -sMODULARIZE=1 \
     -sEXPORT_NAME="createOdzipModule" \
