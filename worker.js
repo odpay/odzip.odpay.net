@@ -224,6 +224,15 @@ self.onmessage = async function (e) {
                 result = await compressParallel(input);
             }
         } else {
+            /* Check if decompressed size exceeds browser limit */
+            var hdrPtr = Module._malloc(HEADER_SIZE);
+            Module.HEAPU8.set(input.subarray(0, HEADER_SIZE), hdrPtr);
+            var origSize = Module._odz_web_read_header_size(hdrPtr);
+            Module._free(hdrPtr);
+            if (origSize > 2 * 1024 * 1024 * 1024) {
+                throw new Error("Decompressed file too large for browser. Use the CLI for files over 2 GB.");
+            }
+
             /* For decompression, parse block count via C helper */
             var dataPtr = Module._malloc(input.length);
             Module.HEAPU8.set(input, dataPtr);

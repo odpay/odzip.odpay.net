@@ -124,7 +124,13 @@
     };
 
     /* ── File handling ─────────────────────────────────────────── */
+    var MAX_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+
     function processFile(file) {
+        if (file.size > MAX_SIZE) {
+            showError("File too large for browser. Use the CLI for files over 2 GB.");
+            return;
+        }
         currentFile = file;
         var operation = isOdz(file.name) ? "decompress" : "compress";
         showProcessing(file.name, operation);
