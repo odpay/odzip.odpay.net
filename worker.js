@@ -224,13 +224,14 @@ self.onmessage = async function (e) {
                 result = await compressParallel(input);
             }
         } else {
-            /* Check if decompressed size exceeds browser limit */
+            /* Check if decompressed size exceeds browser limit.
+             * >>> 0 converts signed i32 from WASM to unsigned. */
             var hdrPtr = Module._malloc(HEADER_SIZE);
             Module.HEAPU8.set(input.subarray(0, HEADER_SIZE), hdrPtr);
-            var origSize = Module._odz_web_read_header_size(hdrPtr);
+            var origSize = Module._odz_web_read_header_size(hdrPtr) >>> 0;
             Module._free(hdrPtr);
-            if (origSize > 2 * 1024 * 1024 * 1024) {
-                throw new Error("Decompressed file too large for browser. Use the CLI for files over 2 GB.");
+            if (origSize > 0x7FFFFFFF) {
+                throw new Error("Decompressed file exceeds 2 GB. Use the CLI for large files.");
             }
 
             /* For decompression, parse block count via C helper */
@@ -263,6 +264,10 @@ self.onmessage = async function (e) {
             timeMs: timeMs,
         }, [buf]);
     } catch (err) {
-        self.postMessage({ type: "error", message: err.message || String(err) });
+        var msg = err.message || String(err);
+        if (msg.indexOf("ArrayBuffer") !== -1 || msg.indexOf("memory") !== -1 || msg.indexOf("OOM") !== -1) {
+            msg = "File too large for browser. Use the CLI for large files.";
+        }
+        self.postMessage({ type: "error", message: msg });
     }
 };
