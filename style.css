@@ -131,16 +131,19 @@ header {
 
 .download-link {
     display: inline-block;
-    color: #7a7aad;
-    font-size: 14px;
+    color: #c8c8d0;
+    font-size: 15px;
+    font-weight: 500;
     text-decoration: none;
-    padding-bottom: 1px;
-    border-bottom: 1px solid rgba(122, 122, 173, 0.4);
-    transition: border-color 0.15s;
+    padding: 8px 24px;
+    border: 1px solid #2a2a3e;
+    border-radius: 4px;
+    transition: border-color 0.15s, color 0.15s;
 }
 
 .download-link:hover {
     border-color: #7a7aad;
+    color: #fff;
 }
 
 .reset-link {
@@ -157,6 +160,12 @@ header {
 
 .reset-link:hover {
     color: #888;
+}
+
+.privacy {
+    color: #333;
+    font-size: 10px;
+    margin-bottom: 8px;
 }
 
 /* Footer */

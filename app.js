@@ -137,17 +137,17 @@
         });
     }
 
-    /* ── Drag & drop ───────────────────────────────────────────── */
-    dropZone.addEventListener("dragover", function (e) {
+    /* ── Drag & drop (works from any state) ──────────────────── */
+    document.addEventListener("dragover", function (e) {
         e.preventDefault();
-        dropZone.classList.add("drag-over");
+        if (!dropZone.hidden) dropZone.classList.add("drag-over");
     });
 
-    dropZone.addEventListener("dragleave", function () {
-        dropZone.classList.remove("drag-over");
+    document.addEventListener("dragleave", function (e) {
+        if (e.relatedTarget === null) dropZone.classList.remove("drag-over");
     });
 
-    dropZone.addEventListener("drop", function (e) {
+    document.addEventListener("drop", function (e) {
         e.preventDefault();
         dropZone.classList.remove("drag-over");
         var file = e.dataTransfer.files[0];
@@ -174,7 +174,5 @@
         showIdle();
     });
 
-    /* Prevent default browser drag behavior on the whole page */
-    document.addEventListener("dragover", function (e) { e.preventDefault(); });
-    document.addEventListener("drop", function (e) { e.preventDefault(); });
+    /* Page-level drag listeners moved to the main drag & drop section above */
 })();
