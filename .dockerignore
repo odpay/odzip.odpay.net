@@ -1,0 +1,12 @@
+*
+!package.json
+!server.js
+!index.html
+!style.css
+!app.js
+!worker.js
+!block-worker.js
+!favicon.gif
+!wasm/
+!wasm/odzip.js
+!wasm/odzip.wasm
