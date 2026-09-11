@@ -7,6 +7,7 @@ odzip is a stateless browser application served by Node. The committed JavaScrip
 - Build context: repository root
 - Dockerfile: `Dockerfile`
 - Image workflow: `.github/workflows/publish-container.yml`
+- Zenith manifest: `zenith-compose.yml`
 - Production platform: `linux/amd64`
 - Startup command: `node server.js 3000`
 - Internal HTTP port: `3000`

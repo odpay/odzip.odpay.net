@@ -1,0 +1,13 @@
+# https://zenith.hosting/developers
+
+x-zenith:
+  catalog:
+    name: odzip
+  expose:
+    - service: app
+      port: 3000
+      web: true
+
+services:
+  app:
+    image: ghcr.io/odpay/odzip.odpay.net@sha256:44a0e49a1769e26e9d242cc41985a0812aba50d7a6354894bef00f00d36f4c4b
